@@ -4,7 +4,7 @@ A small zsh script to inspect all of your Safari iCloud tab groups from the comm
 
 ## macOS Permissions
 
-Your terminal app must have **Full Disk Access** enabled, or the script will fail with an "access denied" error when reading Safari's database.
+Whatever terminal app you are using must have **Full Disk Access** enabled, or the script will fail with an "access denied" error when reading Safari's database.
 
 To enable it: **System Settings → Privacy & Security → Full Disk Access** → toggle on your terminal app (Terminal, iTerm2, etc.).
 
