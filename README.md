@@ -2,6 +2,12 @@
 
 A small zsh script to inspect all of your Safari iCloud tab groups from the command line. It started as a personal itch — when you've got dozens of tab groups synced across devices, there's no easy way to see everything at once. This script reads directly from Safari's local `SafariTabs.db` SQLite database and gives you flexible output options.
 
+## macOS Permissions
+
+Your terminal app must have **Full Disk Access** enabled, or the script will fail with an "access denied" error when reading Safari's database.
+
+To enable it: **System Settings → Privacy & Security → Full Disk Access** → toggle on your terminal app (Terminal, iTerm2, etc.).
+
 ## Requirements
 
 - macOS with Safari iCloud Tabs enabled
