@@ -1,0 +1,122 @@
+#!/bin/zsh
+
+set -euo pipefail
+
+DB_PATH="${HOME}/Library/Containers/com.apple.Safari/Data/Library/Safari/SafariTabs.db"
+SQL_QUERY="SELECT (SELECT title FROM bookmarks WHERE id = b.parent) AS TabGroup, title, url FROM bookmarks b WHERE parent IN (SELECT id FROM bookmarks WHERE type = 1) AND title != 'TopScopedBookmarkList' AND (SELECT title FROM bookmarks WHERE id = b.parent) != 'Root' ORDER BY TabGroup, title;"
+
+usage() {
+  cat <<'EOF'
+Usage: safaricloudtabs [option]
+
+Show Safari iCloud tab group data from SafariTabs.db.
+
+Options:
+  -h          Show this help text and exit
+  -d          List duplicate tab URLs
+  -n          List the number of tabs in each tab group
+  -g REGEX    Grep the tab listing with the provided regex
+  -l          List all tabs as pipe-delimited output
+  -t          List all tabs as a Markdown table
+  -c          List all tabs as CSV
+
+Examples:
+  safaricloudtabs -d
+  safaricloudtabs -n
+  safaricloudtabs -g 'openai|github'
+  safaricloudtabs -l
+  safaricloudtabs -t
+  safaricloudtabs -c
+EOF
+}
+
+require_db() {
+  if [[ ! -f "$DB_PATH" ]]; then
+    print -u2 "Safari tabs database not found: $DB_PATH"
+    exit 1
+  fi
+}
+
+run_query() {
+  sqlite3 -json "$DB_PATH" "$SQL_QUERY"
+}
+
+print_pipe_output() {
+  run_query | jq -r '
+    .[] | [(.TabGroup // ""), (.title // ""), (.url // "")] | join("|")
+  '
+}
+
+print_csv_output() {
+  run_query | jq -r '
+    .[] | [(.TabGroup // ""), (.title // ""), (.url // "")] | @csv
+  '
+}
+
+print_markdown_table() {
+  printf '| TabGroup | Title | URL |\n'
+  printf '| --- | --- | --- |\n'
+  run_query | jq -r '
+    def mdcell:
+      (. // "")
+      | tostring
+      | gsub("\r"; "")
+      | gsub("\n"; " ")
+      | gsub("\\|"; "&#124;");
+    .[] | "| \( .TabGroup | mdcell ) | \( .title | mdcell ) | \( .url | mdcell ) |"
+  '
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+  exit 0
+fi
+
+require_db
+
+while getopts ":hdng:ltc" opt; do
+  case "$opt" in
+    h)
+      usage
+      exit 0
+      ;;
+    d)
+      run_query | jq -r '.[] | .url // empty' | sort | uniq -d
+      exit 0
+      ;;
+    n)
+      run_query | jq -r '.[] | .TabGroup // empty' | uniq -c | sort -n
+      exit 0
+      ;;
+    g)
+      print_pipe_output | grep -E -- "$OPTARG"
+      exit 0
+      ;;
+    l)
+      print_pipe_output
+      exit 0
+      ;;
+    t)
+      print_markdown_table
+      exit 0
+      ;;
+    c)
+      print_csv_output
+      exit 0
+      ;;
+    :)
+      print -u2 "Option -$OPTARG requires an argument."
+      print -u2 ""
+      usage >&2
+      exit 1
+      ;;
+    \?)
+      print -u2 "Unknown option: -$OPTARG"
+      print -u2 ""
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+usage
