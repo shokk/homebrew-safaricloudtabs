@@ -57,6 +57,8 @@ Options:
   -l          List all tabs as pipe-delimited output
   -t          List all tabs as a Markdown table
   -c          List all tabs as CSV
+  -L          List tab group names sorted alphabetically
+  -s [GROUP]  List tabs in a specific tab group; omit GROUP to pick interactively
 ```
 
 ## Examples
@@ -95,6 +97,24 @@ Export as a Markdown table:
 
 ```sh
 safaricloudtabs -t > tabs.md
+```
+
+List all tab group names:
+
+```sh
+safaricloudtabs -L
+```
+
+List tabs in a specific group:
+
+```sh
+safaricloudtabs -s "Work"
+```
+
+Pick a tab group interactively:
+
+```sh
+safaricloudtabs -s
 ```
 
 ## How it works
