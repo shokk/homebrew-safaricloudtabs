@@ -26,16 +26,21 @@ brew install jq
 
 ```sh
 curl -o /usr/local/bin/safaricloudtabs \
-  https://raw.githubusercontent.com/shokk/safari-cloud-tabs/main/safaricloudtabs
+  https://raw.githubusercontent.com/shokk/homebrew-safaricloudtabs/main/safaricloudtabs
 chmod +x /usr/local/bin/safaricloudtabs
 ```
 
-### Homebrew (coming soon)
+### Homebrew
 
 ```sh
 brew tap shokk/safaricloudtabs
 brew install safaricloudtabs
 ```
+
+> **Homebrew 6.0 sandbox bug**: If the install fails with a sandbox error, prefix the install command with `HOMEBREW_SANDBOX=0`:
+> ```sh
+> HOMEBREW_SANDBOX=0 brew install shokk/safaricloudtabs/safaricloudtabs
+> ```
 
 ## Usage
 
