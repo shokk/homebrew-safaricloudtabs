@@ -19,6 +19,8 @@ Options:
   -l          List all tabs as pipe-delimited output
   -t          List all tabs as a Markdown table
   -c          List all tabs as CSV
+  -L          List tab group names sorted alphabetically
+  -s [GROUP]  List tabs in a specific tab group; omit GROUP to pick interactively
 
 Examples:
   safaricloudtabs -d
@@ -27,6 +29,9 @@ Examples:
   safaricloudtabs -l
   safaricloudtabs -t
   safaricloudtabs -c
+  safaricloudtabs -L
+  safaricloudtabs -s "Work"
+  safaricloudtabs -s
 EOF
 }
 
@@ -53,6 +58,38 @@ print_csv_output() {
   '
 }
 
+list_groups() {
+  run_query | jq -r '.[] | .TabGroup // empty' | sort -u
+}
+
+print_group_tabs() {
+  local group="$1"
+  run_query | jq -r --arg g "$group" '
+    .[] | select(.TabGroup == $g) | [(.title // ""), (.url // "")] | join("|")
+  '
+}
+
+select_group_interactively() {
+  local -a groups
+  groups=("${(@f)$(list_groups)}")
+  if [[ ${#groups[@]} -eq 0 ]]; then
+    print -u2 "No tab groups found."
+    exit 1
+  fi
+  local i
+  for i in {1..${#groups[@]}}; do
+    printf '%d) %s\n' "$i" "${groups[$i]}"
+  done
+  printf 'Select a tab group: '
+  local choice
+  read -r choice
+  if ! [[ "$choice" =~ ^[0-9]+$ ]] || (( choice < 1 || choice > ${#groups[@]} )); then
+    print -u2 "Invalid selection."
+    exit 1
+  fi
+  print_group_tabs "${groups[$choice]}"
+}
+
 print_markdown_table() {
   printf '| TabGroup | Title | URL |\n'
   printf '| --- | --- | --- |\n'
@@ -74,7 +111,7 @@ fi
 
 require_db
 
-while getopts ":hdng:ltc" opt; do
+while getopts ":hdng:ltcLs:" opt; do
   case "$opt" in
     h)
       usage
@@ -104,7 +141,19 @@ while getopts ":hdng:ltc" opt; do
       print_csv_output
       exit 0
       ;;
+    L)
+      list_groups
+      exit 0
+      ;;
+    s)
+      print_group_tabs "$OPTARG"
+      exit 0
+      ;;
     :)
+      if [[ "$OPTARG" == "s" ]]; then
+        select_group_interactively
+        exit 0
+      fi
       print -u2 "Option -$OPTARG requires an argument."
       print -u2 ""
       usage >&2
