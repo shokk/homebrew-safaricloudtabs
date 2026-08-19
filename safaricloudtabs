@@ -111,53 +111,34 @@ fi
 
 require_db
 
+opt_h=0 opt_d=0 opt_n=0 opt_l=0 opt_t=0 opt_c=0 opt_L=0
+opt_g=0
+grep_pattern=""
+opt_s=0
+s_arg=""
+s_given=0
+
 while getopts ":hdng:ltcLs:" opt; do
   case "$opt" in
-    h)
-      usage
-      exit 0
-      ;;
-    d)
-      run_query | jq -r '.[] | .url // empty' | sort | uniq -d
-      exit 0
-      ;;
-    n)
-      run_query | jq -r '.[] | .TabGroup // empty' | uniq -c | sort -n
-      exit 0
-      ;;
-    g)
-      print_pipe_output | grep -E -- "$OPTARG"
-      exit 0
-      ;;
-    l)
-      print_pipe_output
-      exit 0
-      ;;
-    t)
-      print_markdown_table
-      exit 0
-      ;;
-    c)
-      print_csv_output
-      exit 0
-      ;;
-    L)
-      list_groups
-      exit 0
-      ;;
-    s)
-      print_group_tabs "$OPTARG"
-      exit 0
-      ;;
+    h) opt_h=1 ;;
+    d) opt_d=1 ;;
+    n) opt_n=1 ;;
+    g) opt_g=1; grep_pattern="$OPTARG" ;;
+    l) opt_l=1 ;;
+    t) opt_t=1 ;;
+    c) opt_c=1 ;;
+    L) opt_L=1 ;;
+    s) opt_s=1; s_arg="$OPTARG"; s_given=1 ;;
     :)
       if [[ "$OPTARG" == "s" ]]; then
-        select_group_interactively
-        exit 0
+        opt_s=1
+        s_given=0
+      else
+        print -u2 "Option -$OPTARG requires an argument."
+        print -u2 ""
+        usage >&2
+        exit 1
       fi
-      print -u2 "Option -$OPTARG requires an argument."
-      print -u2 ""
-      usage >&2
-      exit 1
       ;;
     \?)
       print -u2 "Unknown option: -$OPTARG"
@@ -167,5 +148,59 @@ while getopts ":hdng:ltcLs:" opt; do
       ;;
   esac
 done
+
+if [[ $opt_h -eq 1 ]]; then
+  usage
+  exit 0
+fi
+
+if [[ $opt_g -eq 1 && $opt_n -eq 1 ]]; then
+  print_pipe_output | grep -E -- "$grep_pattern" | awk -F '|' '{print $1}' | sort | uniq -c | awk '{printf "%3d %s\n", $1, $2}'
+  exit 0
+fi
+
+if [[ $opt_d -eq 1 ]]; then
+  run_query | jq -r '.[] | .url // empty' | sort | uniq -d
+  exit 0
+fi
+
+if [[ $opt_n -eq 1 ]]; then
+  run_query | jq -r '.[] | .TabGroup // empty' | uniq -c | sort -n
+  exit 0
+fi
+
+if [[ $opt_g -eq 1 ]]; then
+  print_pipe_output | grep -E -- "$grep_pattern"
+  exit 0
+fi
+
+if [[ $opt_l -eq 1 ]]; then
+  print_pipe_output
+  exit 0
+fi
+
+if [[ $opt_t -eq 1 ]]; then
+  print_markdown_table
+  exit 0
+fi
+
+if [[ $opt_c -eq 1 ]]; then
+  print_csv_output
+  exit 0
+fi
+
+if [[ $opt_L -eq 1 ]]; then
+  list_groups
+  exit 0
+fi
+
+if [[ $opt_s -eq 1 ]]; then
+  if [[ $s_given -eq 1 ]]; then
+    print_group_tabs "$s_arg"
+  else
+    select_group_interactively
+  fi
+  exit 0
+fi
 
 usage

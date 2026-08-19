@@ -87,6 +87,12 @@ Search for tabs matching a pattern:
 safaricloudtabs -g 'openai|github'
 ```
 
+Count matching tabs per group (combine `-n` and `-g` in either order):
+
+```sh
+safaricloudtabs -g 'github' -n
+```
+
 Export everything as CSV:
 
 ```sh
