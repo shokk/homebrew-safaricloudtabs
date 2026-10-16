@@ -54,7 +54,8 @@ Options:
   -d          List duplicate tab URLs
   -D          List the top 10 domains with more than one open tab (www. ignored)
   -n          List the number of tabs in each tab group
-  -g REGEX    Grep the tab listing with the provided regex
+  -g REGEX    Grep the tab listing with the provided regex; with -c or -t, output
+              only the matching tabs as CSV or a Markdown table
   -l          List all tabs as pipe-delimited output
   -t          List all tabs as a Markdown table
   -c          List all tabs as CSV
@@ -98,6 +99,18 @@ Count matching tabs per group (combine `-n` and `-g` in either order):
 
 ```sh
 safaricloudtabs -g 'github' -n
+```
+
+Export only matching tabs as CSV (`-g` filters the same rows as alone; `-c` formats them; same quoting as `-c`):
+
+```sh
+safaricloudtabs -c -g github > github-tabs.csv
+```
+
+Export only matching tabs as a Markdown table (`-t -g`; pipes escaped as with `-t`):
+
+```sh
+safaricloudtabs -t -g github > github-tabs.md
 ```
 
 Export everything as CSV:
