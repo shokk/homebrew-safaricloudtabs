@@ -1,8 +1,8 @@
 class Safaricloudtabs < Formula
   desc "Inspect Safari iCloud tab groups from the command line"
   homepage "https://github.com/shokk/homebrew-safaricloudtabs"
-  url "https://github.com/shokk/homebrew-safaricloudtabs/archive/refs/tags/v1.0.4.tar.gz"
-  sha256 "0541f46e3707383d2bf415f23c2a166cf6e8476bf34fb65dbe28bca9eb8fcd58"
+  url "https://github.com/shokk/homebrew-safaricloudtabs/archive/refs/tags/v1.0.5.tar.gz"
+  sha256 "73949421908cf2d4ccedf9c48101d79eda2207d1214aeba2a7b12a06e03f6f7d"
   license "MIT"
 
   depends_on "jq"
