@@ -14,6 +14,7 @@ Show Safari iCloud tab group data from SafariTabs.db.
 Options:
   -h          Show this help text and exit
   -d          List duplicate tab URLs
+  -D          List the top 10 domains with more than one open tab (www. ignored)
   -n          List the number of tabs in each tab group
   -g REGEX    Grep the tab listing with the provided regex
   -l          List all tabs as pipe-delimited output
@@ -24,6 +25,7 @@ Options:
 
 Examples:
   safaricloudtabs -d
+  safaricloudtabs -D
   safaricloudtabs -n
   safaricloudtabs -g 'openai|github'
   safaricloudtabs -l
@@ -69,6 +71,34 @@ print_group_tabs() {
   '
 }
 
+print_top_domains() {
+  local out
+  # Host only: strip scheme, userinfo, port, path; lowercase; drop a leading "www."
+  # and a trailing dot. URLs without scheme://host (about:blank etc.) are skipped.
+  out=$(run_query | jq -r '
+    def host:
+      (.url // "")
+      | capture("^[A-Za-z][A-Za-z0-9+.-]*://(?<a>[^/?#]*)").a?
+      | sub("^.*@"; "")
+      | if endswith("]") then . else sub(":[0-9]*$"; "") end
+      | ascii_downcase
+      | sub("^www\\."; "")
+      | sub("\\.$"; "");
+    [.[] | host | select(. != null and . != "")]
+    | group_by(.)
+    | map({d: .[0], n: length})
+    | map(select(.n > 1))
+    | sort_by([-.n, .d])
+    | .[:10][]
+    | "\(.n) \(.d)"
+  ')
+  if [[ -z "$out" ]]; then
+    print "No domains with more than one tab."
+  else
+    print -r -- "$out"
+  fi
+}
+
 select_group_interactively() {
   local -a groups
   groups=("${(@f)$(list_groups)}")
@@ -111,17 +141,18 @@ fi
 
 require_db
 
-opt_h=0 opt_d=0 opt_n=0 opt_l=0 opt_t=0 opt_c=0 opt_L=0
+opt_h=0 opt_d=0 opt_D=0 opt_n=0 opt_l=0 opt_t=0 opt_c=0 opt_L=0
 opt_g=0
 grep_pattern=""
 opt_s=0
 s_arg=""
 s_given=0
 
-while getopts ":hdng:ltcLs:" opt; do
+while getopts ":hdDng:ltcLs:" opt; do
   case "$opt" in
     h) opt_h=1 ;;
     d) opt_d=1 ;;
+    D) opt_D=1 ;;
     n) opt_n=1 ;;
     g) opt_g=1; grep_pattern="$OPTARG" ;;
     l) opt_l=1 ;;
@@ -161,6 +192,11 @@ fi
 
 if [[ $opt_d -eq 1 ]]; then
   run_query | jq -r '.[] | .url // empty' | sort | uniq -d
+  exit 0
+fi
+
+if [[ $opt_D -eq 1 ]]; then
+  print_top_domains
   exit 0
 fi
 
