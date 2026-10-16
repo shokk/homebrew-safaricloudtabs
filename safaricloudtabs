@@ -16,7 +16,8 @@ Options:
   -d          List duplicate tab URLs
   -D          List the top 10 domains with more than one open tab (www. ignored)
   -n          List the number of tabs in each tab group
-  -g REGEX    Grep the tab listing with the provided regex
+  -g REGEX    Grep the tab listing with the provided regex; with -c or -t, output
+              only the matching tabs as CSV or a Markdown table
   -l          List all tabs as pipe-delimited output
   -t          List all tabs as a Markdown table
   -c          List all tabs as CSV
@@ -28,6 +29,8 @@ Examples:
   safaricloudtabs -D
   safaricloudtabs -n
   safaricloudtabs -g 'openai|github'
+  safaricloudtabs -c -g github
+  safaricloudtabs -t -g github
   safaricloudtabs -l
   safaricloudtabs -t
   safaricloudtabs -c
@@ -54,8 +57,26 @@ print_pipe_output() {
   '
 }
 
+# Tab rows as JSON. With a regex argument, keep only the rows whose pipe-delimited
+# line (group|title|url, exactly what -g greps) matches grep -E. Returns 1 if none match,
+# like grep does for -g alone. CR/LF inside a field are flattened for matching only.
+query_rows() {
+  local pattern="${1-}" rows lines idx
+  rows=$(run_query)
+  if [[ $# -eq 0 ]]; then
+    print -r -- "$rows"
+    return 0
+  fi
+  lines=$(print -r -- "$rows" | jq -r '
+    .[] | [(.TabGroup // ""), (.title // ""), (.url // "")] | join("|") | gsub("[\r\n]"; " ")
+  ')
+  idx=$(print -r -- "$lines" | grep -n -E -- "$pattern" | cut -d: -f1 | paste -sd, - || true)
+  print -r -- "$rows" | jq --argjson idx "[${idx}]" '[to_entries[] | select((.key + 1) as $k | $idx | index($k)) | .value]'
+  [[ -n "$idx" ]]
+}
+
 print_csv_output() {
-  run_query | jq -r '
+  query_rows "$@" | jq -r '
     .[] | [(.TabGroup // ""), (.title // ""), (.url // "")] | @csv
   '
 }
@@ -123,7 +144,7 @@ select_group_interactively() {
 print_markdown_table() {
   printf '| TabGroup | Title | URL |\n'
   printf '| --- | --- | --- |\n'
-  run_query | jq -r '
+  query_rows "$@" | jq -r '
     def mdcell:
       (. // "")
       | tostring
@@ -206,7 +227,14 @@ if [[ $opt_n -eq 1 ]]; then
 fi
 
 if [[ $opt_g -eq 1 ]]; then
-  print_pipe_output | grep -E -- "$grep_pattern"
+  # Same precedence as without -g (-l, then -t, then -c); plain -g stays pipe-delimited.
+  if [[ $opt_l -eq 0 && $opt_t -eq 1 ]]; then
+    print_markdown_table "$grep_pattern"
+  elif [[ $opt_l -eq 0 && $opt_c -eq 1 ]]; then
+    print_csv_output "$grep_pattern"
+  else
+    print_pipe_output | grep -E -- "$grep_pattern"
+  fi
   exit 0
 fi
 
