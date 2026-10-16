@@ -52,6 +52,7 @@ Show Safari iCloud tab group data from SafariTabs.db.
 Options:
   -h          Show this help text and exit
   -d          List duplicate tab URLs
+  -D          List the top 10 domains with more than one open tab (www. ignored)
   -n          List the number of tabs in each tab group
   -g REGEX    Grep the tab listing with the provided regex
   -l          List all tabs as pipe-delimited output
@@ -79,6 +80,12 @@ Find duplicate URLs across all groups:
 
 ```sh
 safaricloudtabs -d
+```
+
+List the top 10 domains with more than one open tab (count first, most tabs first, ties alphabetical; `www.` is ignored; other options are ignored when `-D` is given):
+
+```sh
+safaricloudtabs -D
 ```
 
 Search for tabs matching a pattern:
